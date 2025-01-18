@@ -166,7 +166,12 @@ def return_chapter_names_within_search_results(search_results_within_search_resu
         chapter_names.append(chapter_name)
     chapter_counts = Counter(chapter_names)
     chapter_count_summary = ". ".join(f"{chapter}: {count}" for chapter, count in chapter_counts.items()) + "."
-    return chapter_names, chapter_count_summary
+    chapter_counts_df = (
+        pd.DataFrame(chapter_counts.items(), columns=["Chapter", "Count"])
+        .sort_values(by="Count", ascending=False)
+        .reset_index(drop=True)
+    )
+    return chapter_names, chapter_count_summary, chapter_counts_df
 
 def return_chapter_names_normal(search_results):
     chapter_names = []
@@ -177,7 +182,12 @@ def return_chapter_names_normal(search_results):
         chapter_names.append(chapter_name)
     chapter_counts = Counter(chapter_names)
     chapter_count_summary = ". ".join(f"{chapter}: {count}" for chapter, count in chapter_counts.items()) + "."
-    return chapter_names, chapter_count_summary
+    chapter_counts_df = (
+        pd.DataFrame(chapter_counts.items(), columns=["Chapter", "Count"])
+        .sort_values(by="Count", ascending=False)
+        .reset_index(drop=True)
+    )
+    return chapter_names, chapter_count_summary, chapter_counts_df
 
 with open(quran, 'r', encoding='utf-8') as file:
     text = file.read()
@@ -191,32 +201,49 @@ if keyword:
 
     if search_results:
         no_of_occurrences = len(search_results)
-        chapter_names, chapter_names_summary = return_chapter_names_normal(search_results)
-        st.success(f"Found {no_of_occurrences} occurrence(s) of {keyword} \n\n {chapter_names_summary}")
+        chapter_names, chapter_names_summary, chapter_counts_df = return_chapter_names_normal(search_results)
+#        st.success(f"Found {no_of_occurrences} occurrence(s) of {keyword} \n\n {chapter_names_summary}")
+        st.success(f"Found {no_of_occurrences} occurrence(s) of {keyword}")
+        st.bar_chart(chapter_counts_df.set_index("Chapter"), color=(5,5,5))
 
         keyword_within_search_results = st.text_input("Enter a keyword or phrase to search within your search results")
         search_results_within_search_results = search_in_search_results(search_results, keyword_within_search_results)
-        #st.write(f"keyword_within_search_results: {type(keyword_within_search_results)} {len(keyword_within_search_results)}")
-        #st.write(f"search_results_within_search_results: {type(search_results_within_search_results)} {len(search_results_within_search_results)}")
+        no_of_occurrences2 = len(search_results_within_search_results)
 
         if len(keyword_within_search_results) > 0:
-            chapter_names, chapter_names_summary = return_chapter_names_within_search_results(search_results_within_search_results)
+            chapter_names, chapter_names_summary, chapter_counts_df = return_chapter_names_within_search_results(search_results_within_search_results)
 
-            st.success(f"Found {len(search_results_within_search_results)} occurrence(s) of {keyword_within_search_results} within your {no_of_occurrences} search results \n\n {chapter_names_summary}")
-            for index, content in enumerate(search_results_within_search_results):
-                parts = content.split("|")
-                chapter_number = int(parts[0]) - 1
-                chapter_name = list(quran_chapters.values())[chapter_number]
-                verse_number = parts[1]
-                verse_number = convert_numbers.arabic_to_hindi(verse_number)
+            #st.success(f"Found {len(search_results_within_search_results)} occurrence(s) of {keyword_within_search_results} within your {no_of_occurrences} search results \n\n {chapter_names_summary}")
+            st.success(f"Found {len(search_results_within_search_results)} occurrence(s) of {keyword_within_search_results} within your {no_of_occurrences} search results")
+            #st.bar_chart(chapter_counts_df.set_index("Chapter"), color=(5, 5, 5))
+            if no_of_occurrences2 >= 20:
+                num_tabs = no_of_occurrences2 // 10
+                if (no_of_occurrences2 % 10) > 0:
+                    num_tabs = num_tabs + 1
+                tab_labels = [f"{i + 1}" for i in range(num_tabs)]
+                tabs = st.tabs(tab_labels)
 
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.write(f"**Search result {index + 1} found in سورة {chapter_name}:**")
-                with c2:
-                    text = parts[2] + verse_number
-                    st.write(f"**:green[{parts[2]} (۞{verse_number}۞)]**")
-                st.write("----------------------")
+                for index, content in enumerate(search_results_within_search_results):
+                    result_no = index + 1
+                    tab_index = (result_no - 1) // 10  # Calculate which tab it belongs to (0-based index)
+                    with tabs[tab_index]:
+                        display_results_page(result_no, content)
+
+            else:
+                for index, content in enumerate(search_results_within_search_results):
+                    parts = content.split("|")
+                    chapter_number = int(parts[0]) - 1
+                    chapter_name = list(quran_chapters.values())[chapter_number]
+                    verse_number = parts[1]
+                    verse_number = convert_numbers.arabic_to_hindi(verse_number)
+
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.write(f"**Search result {index + 1} found in سورة {chapter_name}:**")
+                    with c2:
+                        text = parts[2] + verse_number
+                        st.write(f"**:green[{parts[2]} (۞{verse_number}۞)]**")
+                    st.write("----------------------")
         else:
             if no_of_occurrences >= 20:
                 num_tabs = no_of_occurrences // 10
