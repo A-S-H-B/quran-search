@@ -10,6 +10,7 @@ st.header('Quran Text Search')
 st.markdown("Simple text search web app of the Holy Quran")
 
 quran = 'quran.txt'
+quran_english = 'quran_pickthall.txt'
 quran_chapters = {
     1: "الفاتحة",  # Al-Fatiha
     2: "البقرة",    # Al-Baqarah
@@ -127,6 +128,23 @@ quran_chapters = {
     114: "الناس"     # An-Nas
 }
 
+def load_english_translations():
+    english_dict = {}
+    try:
+        with open(quran_english, 'r', encoding='utf-8') as file:
+            for line in file:
+                parts = line.strip().split('|')
+                if len(parts) >= 3:
+                    chapter = parts[0]
+                    verse = parts[1]
+                    translation = '|'.join(parts[2:])  # Join the rest as translation text
+                    key = f"{chapter}|{verse}"
+                    english_dict[key] = translation
+        return english_dict
+    except FileNotFoundError:
+        st.error("English translation file not found. Please make sure 'quran_english.txt' is in the same directory.")
+        return {}
+    
 def search_in_text(text, keyword):
     lines = text.split('\n')
     results = []
@@ -147,14 +165,21 @@ def display_results_page(result_no, content):
     chapter_number = int(parts[0]) - 1
     # chapter_name = quran_chapters.get(chapter_number, "Error obtaining chapter name")
     chapter_name = list(quran_chapters.values())[chapter_number]
-    verse_number = parts[1]
-    verse_number = convert_numbers.arabic_to_hindi(verse_number)
+    verse_number_arabic = parts[1]
+    verse_number = convert_numbers.arabic_to_hindi(verse_number_arabic)
+
+    english_text = ""
+    if english_dict:
+        english_text = get_english_translation(parts[0], parts[1], english_dict)
+    
     c1, c2 = st.columns(2)
     with c1:
         st.write(f"**Search result {result_no} found in سورة {chapter_name}:**")
     with c2:
         text = parts[2] + verse_number
         st.write(f"**:green[{parts[2]} (۞{verse_number}۞)]**")
+        if english_text:
+            st.write(f"English Translation: :green[{english_text} (۞{verse_number_arabic}۞)]")
     st.write("----------------------")
 
 def return_chapter_names_within_search_results(search_results_within_search_results):
@@ -189,8 +214,15 @@ def return_chapter_names_normal(search_results):
     )
     return chapter_names, chapter_count_summary, chapter_counts_df
 
+def get_english_translation(chapter, verse, english_dict):
+    """Get English translation for a specific chapter and verse"""
+    key = f"{chapter}|{verse}"
+    return english_dict.get(key, "Translation not available")
+
 with open(quran, 'r', encoding='utf-8') as file:
     text = file.read()
+
+english_dict = load_english_translations()
 
 # Search functionality
 st.subheader("Search here")
@@ -213,7 +245,6 @@ if keyword:
         if len(keyword_within_search_results) > 0:
             chapter_names, chapter_names_summary, chapter_counts_df = return_chapter_names_within_search_results(search_results_within_search_results)
 
-            #st.success(f"Found {len(search_results_within_search_results)} occurrence(s) of {keyword_within_search_results} within your {no_of_occurrences} search results \n\n {chapter_names_summary}")
             st.success(f"Found {len(search_results_within_search_results)} occurrence(s) of {keyword_within_search_results} within your {no_of_occurrences} search results")
             #st.bar_chart(chapter_counts_df.set_index("Chapter"), color=(5, 5, 5))
             if no_of_occurrences2 >= 20:
@@ -234,15 +265,21 @@ if keyword:
                     parts = content.split("|")
                     chapter_number = int(parts[0]) - 1
                     chapter_name = list(quran_chapters.values())[chapter_number]
-                    verse_number = parts[1]
-                    verse_number = convert_numbers.arabic_to_hindi(verse_number)
+                    verse_number_arabic = parts[1]
+                    verse_number = convert_numbers.arabic_to_hindi(verse_number_arabic)
 
+                    english_text = ""
+                    if english_dict:
+                        english_text = get_english_translation(parts[0], parts[1], english_dict)
+                    
                     c1, c2 = st.columns(2)
                     with c1:
                         st.write(f"**Search result {index + 1} found in سورة {chapter_name}:**")
                     with c2:
                         text = parts[2] + verse_number
                         st.write(f"**:green[{parts[2]} (۞{verse_number}۞)]**")
+                        if english_text:
+                            st.write(f"English Translation: :green[{english_text} (۞{verse_number_arabic}۞)]")
                     st.write("----------------------")
         else:
             if no_of_occurrences >= 20:
@@ -264,8 +301,10 @@ if keyword:
                     chapter_number = int(parts[0])-1
                     #chapter_name = quran_chapters.get(chapter_number, "Error obtaining chapter name")
                     chapter_name = list(quran_chapters.values())[chapter_number]
-                    verse_number = parts[1]
-                    verse_number = convert_numbers.arabic_to_hindi(verse_number)
+                    verse_number_arabic = parts[1]
+                    verse_number = convert_numbers.arabic_to_hindi(verse_number_arabic)
+
+                    english_text = get_english_translation(parts[0], parts[1], english_dict)
 
                     c1, c2 = st.columns(2)
                     with c1:
@@ -273,6 +312,8 @@ if keyword:
                     with c2:
                         text = parts[2]+verse_number
                         st.write(f"**:green[{parts[2]} (۞{verse_number}۞)]**")
+                        if english_text:
+                            st.write(f"English Translation: :green[{english_text} (۞{verse_number_arabic}۞)]")
                     st.write("----------------------")
 
     else:
