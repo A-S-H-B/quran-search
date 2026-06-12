@@ -11,6 +11,8 @@ st.markdown("Simple text search web app of the Holy Quran")
 
 quran = 'quran.txt'
 quran_english = 'quran_pickthall.txt'
+quran_english2 = 'quran_yusufali.txt'
+quran_english3 = 'quran_sahih.txt'
 quran_chapters = {
     1: "الفاتحة",  # Al-Fatiha
     2: "البقرة",    # Al-Baqarah
@@ -360,10 +362,11 @@ quran_chapters_meanings = {
     114: "The Mankind"
 }
 
-def load_english_translations():
+def load_english_translations(file_path):
+    """Load any English translation file formatted as chapter|verse|text."""
     english_dict = {}
     try:
-        with open(quran_english, 'r', encoding='utf-8') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             for line in file:
                 parts = line.strip().split('|')
                 if len(parts) >= 3:
@@ -374,9 +377,9 @@ def load_english_translations():
                     english_dict[key] = translation
         return english_dict
     except FileNotFoundError:
-        st.error("English translation file not found. Please make sure 'quran_english.txt' is in the same directory.")
+        st.error(f"Translation file not found: {file_path}. Please make sure it's in the same directory.")
         return {}
-    
+
 def search_in_text(text, keyword):
     lines = text.split('\n')
     results = []
@@ -401,18 +404,24 @@ def display_results_page(result_no, content):
     verse_number_arabic = parts[1]
     verse_number = convert_numbers.arabic_to_hindi(verse_number_arabic)
 
-    english_text = ""
-    if english_dict:
-        english_text = get_english_translation(parts[0], parts[1], english_dict)
-    
+    # Load English translations (module-level variables are used)
+    trans_pickthall = get_english_translation(parts[0], parts[1], english_dict) if english_dict else ""
+    trans_yusufali = get_english_translation(parts[0], parts[1], english_dict2) if english_dict2 else ""
+    trans_sahih = get_english_translation(parts[0], parts[1], english_dict3) if english_dict3 else ""
+
     c1, c2 = st.columns(2)
     with c1:
         st.write(f"**Search result {result_no} found in Chapter {chapter_number}: {chapter_name_en} || سورة {chapter_name}:**")
     with c2:
         text = parts[2] + verse_number
         st.write(f"**:green[{parts[2]} (۞{verse_number}۞)]**")
-        if english_text:
-            st.write(f"English Translation: :green[{english_text} (۞{verse_number_arabic}۞)]")
+        if st.session_state.show_english:
+            if trans_pickthall:
+                st.write(f"Pickthall: :green[{trans_pickthall} (۞{verse_number_arabic}۞)]")
+            if trans_yusufali:
+                st.write(f"Yusuf Ali: :green[{trans_yusufali} (۞{verse_number_arabic}۞)]")
+            if trans_sahih:
+                st.write(f"Sahih International: :green[{trans_sahih} (۞{verse_number_arabic}۞)]")
     st.write("----------------------")
 
 def return_chapter_names_within_search_results(search_results_within_search_results):
@@ -448,17 +457,25 @@ def return_chapter_names_normal(search_results):
     return chapter_names, chapter_count_summary, chapter_counts_df
 
 def get_english_translation(chapter, verse, english_dict):
-    """Get English translation for a specific chapter and verse"""
+    """Get English translation for a specific chapter and verse from a given dictionary."""
     key = f"{chapter}|{verse}"
     return english_dict.get(key, "Translation not available")
 
 with open(quran, 'r', encoding='utf-8') as file:
     text = file.read()
 
-english_dict = load_english_translations()
+english_dict = load_english_translations(quran_english)
+english_dict2 = load_english_translations(quran_english2)
+english_dict3 = load_english_translations(quran_english3)
 
-# Search functionality
+# Toggle for showing/hiding English translations (default: hide)
+if 'show_english' not in st.session_state:
+    st.session_state.show_english = False
+
 st.subheader("Search here")
+show_english = st.checkbox("Show English translations", value=st.session_state.show_english)
+st.session_state.show_english = show_english
+
 keyword = st.text_input("Enter a keyword or phrase to search   |   اطبع عبارة لإجراء البحث ")
 
 if keyword:
@@ -467,7 +484,6 @@ if keyword:
     if search_results:
         no_of_occurrences = len(search_results)
         chapter_names, chapter_names_summary, chapter_counts_df = return_chapter_names_normal(search_results)
-#        st.success(f"Found {no_of_occurrences} occurrence(s) of {keyword} \n\n {chapter_names_summary}")
         st.success(f"Found {no_of_occurrences} occurrence(s) of {keyword}")
         st.bar_chart(chapter_counts_df.set_index("Chapter"), color=(5,5,5))
 
@@ -501,18 +517,23 @@ if keyword:
                     verse_number_arabic = parts[1]
                     verse_number = convert_numbers.arabic_to_hindi(verse_number_arabic)
 
-                    english_text = ""
-                    if english_dict:
-                        english_text = get_english_translation(parts[0], parts[1], english_dict)
-                    
+                    trans_pickthall = get_english_translation(parts[0], parts[1], english_dict) if english_dict else ""
+                    trans_yusufali = get_english_translation(parts[0], parts[1], english_dict2) if english_dict2 else ""
+                    trans_sahih = get_english_translation(parts[0], parts[1], english_dict3) if english_dict3 else ""
+
                     c1, c2 = st.columns(2)
                     with c1:
                         st.write(f"**Search result {index + 1} found in سورة {chapter_name}:**")
                     with c2:
                         text = parts[2] + verse_number
                         st.write(f"**:green[{parts[2]} (۞{verse_number}۞)]**")
-                        if english_text:
-                            st.write(f"English Translation: :green[{english_text} (۞{verse_number_arabic}۞)]")
+                        if st.session_state.show_english:
+                            if trans_pickthall:
+                                st.write(f"Pickthall: :green[{trans_pickthall} (۞{verse_number_arabic}۞)]")
+                            if trans_yusufali:
+                                st.write(f"Yusuf Ali: :green[{trans_yusufali} (۞{verse_number_arabic}۞)]")
+                            if trans_sahih:
+                                st.write(f"Sahih International: :green[{trans_sahih} (۞{verse_number_arabic}۞)]")
                     st.write("----------------------")
         else:
             if no_of_occurrences >= 20:
@@ -537,7 +558,9 @@ if keyword:
                     verse_number_arabic = parts[1]
                     verse_number = convert_numbers.arabic_to_hindi(verse_number_arabic)
 
-                    english_text = get_english_translation(parts[0], parts[1], english_dict)
+                    trans_pickthall = get_english_translation(parts[0], parts[1], english_dict) if english_dict else ""
+                    trans_yusufali = get_english_translation(parts[0], parts[1], english_dict2) if english_dict2 else ""
+                    trans_sahih = get_english_translation(parts[0], parts[1], english_dict3) if english_dict3 else ""
 
                     c1, c2 = st.columns(2)
                     with c1:
@@ -545,11 +568,14 @@ if keyword:
                     with c2:
                         text = parts[2]+verse_number
                         st.write(f"**:green[{parts[2]} (۞{verse_number}۞)]**")
-                        if english_text:
-                            st.write(f"English Translation: :green[{english_text} (۞{verse_number_arabic}۞)]")
+                        if st.session_state.show_english:
+                            if trans_pickthall:
+                                st.write(f"Pickthall: :green[{trans_pickthall} (۞{verse_number_arabic}۞)]")
+                            if trans_yusufali:
+                                st.write(f"Yusuf Ali: :green[{trans_yusufali} (۞{verse_number_arabic}۞)]")
+                            if trans_sahih:
+                                st.write(f"Sahih International: :green[{trans_sahih} (۞{verse_number_arabic}۞)]")
                     st.write("----------------------")
 
     else:
         st.warning(f"Found no occurrences of {keyword}. Try to use variations or similar words")
-
-

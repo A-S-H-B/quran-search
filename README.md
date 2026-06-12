@@ -1,10 +1,15 @@
-# Quran Search
+# Quran Text Search
 
 ## Introduction
 
-The Quran Search web app is built to provide a text search engine of the Holy Quran for the high goal of aiding the Book's reading and studying.
+The Quran Text Search web app is built to provide a text search engine of the Holy Quran for the high goal of aiding the Book's reading and studying.
 
-It searches in Arabic and provides search results in original Arabic text and accompanying English translated text (Pickthall version).
+It searches in Arabic and provides search results in original Arabic text and accompanying English translated text (Pickthall version and other versions).
+
+## Sources of Translations
+
+Enlish Translations were sourced from here:
+https://tanzil.net/trans/
 
 ## Suggestions
 Please communicate suggestions via GitHub. We welcome suggestions for corrections or improvements 
